@@ -1,5 +1,3 @@
-package sphinx;
-
 import javax.sound.sampled.AudioFileFormat.Type;
 import javax.sound.sampled.*;
 import java.io.File;

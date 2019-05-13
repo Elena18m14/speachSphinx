@@ -15,25 +15,55 @@ public class SpeechRecord {
 
         StreamSpeechRecognizer recognizer = new StreamSpeechRecognizer(
                 configuration);
-
-        InputStream stream = Audio.inputStreemFromPat("D://test.wav");
-
+        // TODO only need to be read once (use a function like resert())
+        // TODO add test.wav to git
+        String wave = "D://test.wav";
         //Simple speech recording
-        simple(recognizer, stream);
-
-        //stats (recognizer ,stream);
+        simple(recognizer, wave);
 
         // Hard speech recording
-        hard(recognizer, stream);
+        hard(recognizer, wave);
 
     }
 
-    private static void simple(StreamSpeechRecognizer recognizer, InputStream stream) {
-        SpeechResult result;
+    private static void simple(StreamSpeechRecognizer recognizer, String wave) throws Exception {
+        InputStream stream = Audio.inputStreemFromPat(wave);
         recognizer.startRecognition(stream);
+        String text = result(recognizer);
+        recognizer.stopRecognition();
+    }
+
+
+    private static void hard(StreamSpeechRecognizer recognizer, String wave) throws Exception {
+        InputStream stream = Audio.inputStreemFromPat(wave);
+
+        recognizer = stats(recognizer, wave);
+        // Decode again with updated transform
+        recognizer.startRecognition(stream);
+        String text = result(recognizer);
+        recognizer.stopRecognition();
+    }
+
+    private static StreamSpeechRecognizer stats(StreamSpeechRecognizer recognizer, String wave) throws Exception {
+        SpeechResult result;
+        InputStream stream = Audio.inputStreemFromPat(wave);
+        Stats stats = recognizer.createStats(1);
+        recognizer.startRecognition(stream);
+        while ((result = recognizer.getResult()) != null) {
+            stats.collect(result);
+        }
+        recognizer.stopRecognition();
+
+        // Transform represents the speech profile
+        Transform transform = stats.createTransform();
+        recognizer.setTransform(transform);
+        return recognizer;
+    }
+
+    private static String result(StreamSpeechRecognizer recognizer) {
+        SpeechResult result;
         String text = "";
         while ((result = recognizer.getResult()) != null) {
-            //not optimized
             System.out.format("Hypothesis: %s\n", result.getHypothesis());
             text += result.getHypothesis();
             System.out.println("List of recognized words and their times:");
@@ -46,32 +76,6 @@ public class SpeechRecord {
                 System.out.println(s);
         }
         System.out.println(text);
-        recognizer.stopRecognition();
-    }
-
-    public static void stats(StreamSpeechRecognizer recognizer, InputStream stream) throws Exception {
-        SpeechResult result;
-        Stats stats = recognizer.createStats(1);
-        recognizer.startRecognition(stream);
-        while ((result = recognizer.getResult()) != null) {
-            stats.collect(result);
-        }
-        recognizer.stopRecognition();
-
-        Transform transform = stats.createTransform();
-        recognizer.setTransform(transform);
-    }
-
-    private static void hard(StreamSpeechRecognizer recognizer, InputStream stream) {
-        SpeechResult result;
-        recognizer.startRecognition(stream);
-
-        String a = "";
-        while ((result = recognizer.getResult()) != null) {
-            System.out.format("Hypothesis: %s\n", result.getHypothesis());
-            a= a + result.getHypothesis() + "";
-        }
-        recognizer.stopRecognition();
-        System.out.println(a);
+        return text;
     }
 }
